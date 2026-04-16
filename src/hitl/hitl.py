@@ -84,13 +84,37 @@ class ConfidenceRouter:
         #      action="escalate", priority="high",
         #      requires_human=True, reason="Low confidence — escalating"
 
+        if action_type in HIGH_RISK_ACTIONS:
+            return RoutingDecision(
+                action="escalate",
+                confidence=confidence,
+                reason=f"High-risk action: {action_type}",
+                priority="high",
+                requires_human=True,
+            )
+        if confidence >= self.HIGH_THRESHOLD:
+            return RoutingDecision(
+                action="auto_send",
+                confidence=confidence,
+                reason="High confidence",
+                priority="low",
+                requires_human=False,
+            )
+        if confidence >= self.MEDIUM_THRESHOLD:
+            return RoutingDecision(
+                action="queue_review",
+                confidence=confidence,
+                reason="Medium confidence — needs review",
+                priority="normal",
+                requires_human=True,
+            )
         return RoutingDecision(
-            action="auto_send",
+            action="escalate",
             confidence=confidence,
-            reason="TODO: implement routing logic",
-            priority="low",
-            requires_human=False,
-        )  # TODO: Replace with implementation
+            reason="Low confidence — escalating",
+            priority="high",
+            requires_human=True,
+        )
 
 
 # ============================================================
@@ -109,27 +133,27 @@ class ConfidenceRouter:
 hitl_decision_points = [
     {
         "id": 1,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Large Fund Transfer Review",
+        "trigger": "Transfer amount > 50 million VND or international transfer",
+        "hitl_model": "human-in-the-loop",
+        "context_needed": "Account history, recipient details, user authentication level, prior transfers",
+        "example": "Customer requests transfer of 200M VND to new overseas account. Agent drafts confirmation but pauses for human approval before executing.",
     },
     {
         "id": 2,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Account Closure Monitoring",
+        "trigger": "User requests to close account or delete all data",
+        "hitl_model": "human-on-the-loop",
+        "context_needed": "Account balance, active loans, linked products, reason for closure",
+        "example": "Agent processes closure request, schedules for 48-hour window; human reviewer sees queued action and can cancel if suspicious.",
     },
     {
         "id": 3,
-        "name": "TODO: Name this decision point",
-        "trigger": "TODO: When does this trigger?",
-        "hitl_model": "TODO: human-in-the-loop / human-on-the-loop / human-as-tiebreaker",
-        "context_needed": "TODO: What does the reviewer need to see?",
-        "example": "TODO: Give a concrete example scenario",
+        "name": "Fraud Signal Tiebreaker",
+        "trigger": "Transaction flagged by fraud model with confidence 0.6–0.8 (ambiguous zone)",
+        "hitl_model": "human-as-tiebreaker",
+        "context_needed": "Fraud score, transaction location, device fingerprint, customer call history",
+        "example": "System flags overseas ATM withdrawal as possibly fraudulent (score=0.72). Neither auto-approve nor auto-block. Human agent reviews and decides.",
     },
 ]
 
